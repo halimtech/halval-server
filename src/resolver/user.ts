@@ -42,6 +42,63 @@ export class UserResolver {
 
     }
 
+    @Mutation(() => UserResponse)
+    async changePassword(
+        @Arg("token") token: string,
+        @Arg("newPassword") newPassword: string,
+        @Ctx() { redis, em, req }: MyContext
+    ): Promise<UserResponse> {
+        if (newPassword.length < 8) {
+            return {
+                errors: [
+                    {
+                        field: "newPassword",
+                        message: "Password must be atleast 8 chars"
+
+                    }
+                ]
+
+            }
+        }
+        const key = FORGET_PASSWORD_PREFIX + token
+        const userId = await redis.get(key)
+        if (!userId) {
+            return {
+                errors: [
+                    {
+                        field: "token",
+                        message: "token expired"
+
+                    }
+                ]
+
+            }
+        }
+
+        const user = await em.findOne(User, { _id: userId })
+        if (!user) {
+            return {
+                errors: [
+                    {
+                        field: "token",
+                        message: "user no longer exists"
+
+                    }
+                ]
+
+            }
+        }
+
+        user.password = await argon2.hash(newPassword)
+        await em.persistAndFlush(user)
+        await redis.del(key)
+
+        //log in user after password change for better UX
+        req.session.userId = user._id
+
+        return { user }
+    }
+
 
     @Mutation(() => UserResponse)
     async register(
@@ -155,7 +212,7 @@ export class UserResolver {
 
         await sendEmail(
             email,
-            `<a href='http://localhost:300/change-password/${token}'>reset password</a>`
+            `<a href='http://127.0.0.1:3000/change-password/${token}'>reset password</a>`
         )
 
         return true

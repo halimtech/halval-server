@@ -1,20 +1,21 @@
-import { MikroORM } from "@mikro-orm/core"
+import "reflect-metadata"
 import { COOKIE_NAME, __prod__ } from "./constants";
-//import { Post } from "./entities/Post";
-import bob from "./mikro-orm.config"
 import express from "express"
 import { ApolloServer } from "apollo-server-express"
 import { buildSchema } from "type-graphql"
 import { HelloResolver } from "./resolver/hello";
 import { PostResolver } from "./resolver/post";
 import { UserResolver } from "./resolver/user";
-//import { User } from "./entities/User";
+import { User } from "./entities/User";
 import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from "connect-redis"
 //import { MyContext } from "./types";
 import cors from "cors"
 import { sendEmail } from "./utils/sendEmails";
+import { createConnection } from "typeorm"
+import 'dotenv/config'
+import { Post } from "./entities/Post";
 
 
 
@@ -24,7 +25,15 @@ import { sendEmail } from "./utils/sendEmails";
 const main = async () => {
     sendEmail("bob@bob.com", "hello there!")
 
-    const orm = await MikroORM.init(bob)
+    const conn = await createConnection({
+        type: "postgres",
+        database: "halval",
+        username: "postgres",
+        password: process.env.DB_PASS,
+        logging: true,
+        synchronize: true,
+        entities: [Post, User],
+    })
 
     /*const posting = orm.em.create(Post, { title: "my first post" })
     await orm.em.persistAndFlush(posting)
@@ -74,7 +83,7 @@ const main = async () => {
             resolvers: [HelloResolver, PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }) => ({ em: orm.em, req, res, redis })
+        context: ({ req, res }) => ({ req, res, redis })
     })
 
     apolloServer.applyMiddleware({

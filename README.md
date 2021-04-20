@@ -6,7 +6,8 @@ this is a learning Project follow along with Ben Awad
 
 ### the Backend is implemented using :
 * Typescript 
-* mongoDB 
+* [TypeORM](https://typeorm.io/)
+* PostgreSQL (moved from moongoDB) 
 * graphql 
 * express and Apollo-server
 ### the fronten is implemented using :
